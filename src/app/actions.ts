@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import * as cheerio from 'cheerio';
@@ -6,9 +5,13 @@ import * as cheerio from 'cheerio';
 export async function performInstantScan(url: string) {
   try {
     const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+    
     const response = await fetch(targetUrl, { 
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36' },
-      next: { revalidate: 0 }
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      },
+      cache: 'no-store',
     });
     
     if (!response.ok) throw new Error(`Site responded with status: ${response.status}`);
@@ -17,39 +20,48 @@ export async function performInstantScan(url: string) {
     const $ = cheerio.load(html);
     const htmlLower = html.toLowerCase();
     
-    // Page Metadata
+    // Safety Check: Is it HTTPS?
+    const isSecure = targetUrl.startsWith('https');
+
+    // Metadata
     const metadata = {
       title: $('title').text() || 'No Title Found',
-      description: $('meta[name="description"]').attr('content') || 'No description available for this site.',
+      description: $('meta[name="description"]').attr('content') || 'No description available.',
     };
 
-    const foundTech = new Map();
+    const techList: any[] = [];
 
-    // Helper to add tech with logos
-    const addTech = (name: string, cat: string, slug: string) => {
-      foundTech.set(name, { 
-        name, 
-        cat, 
-        logo: `https://cdn.simpleicons.org/${slug}` 
-      });
+    // Detection Helper
+    const check = (pattern: string, name: string, cat: string, slug: string) => {
+      if (htmlLower.includes(pattern.toLowerCase())) {
+        if (!techList.find(t => t.name === name)) {
+          techList.push({ name, cat, logo: `https://cdn.simpleicons.org/${slug}` });
+        }
+      }
     };
 
-    // Detection rules
-    if (htmlLower.includes('_next/static')) addTech('Next.js', 'Framework', 'nextdotjs');
-    if (htmlLower.includes('react-dom')) addTech('React', 'Library', 'react');
-    if (htmlLower.includes('tailwindcss')) addTech('Tailwind CSS', 'UI Framework', 'tailwindcss');
-    if (htmlLower.includes('wordpress')) addTech('WordPress', 'CMS', 'wordpress');
-    if (htmlLower.includes('shopify')) addTech('Shopify', 'E-commerce', 'shopify');
-    if (htmlLower.includes('googletagmanager')) addTech('GTM', 'Analytics', 'googleanalytics');
-    if (htmlLower.includes('cloudflare')) addTech('Cloudflare', 'Security', 'cloudflare');
-    if (htmlLower.includes('vercel')) addTech('Vercel', 'Hosting', 'vercel');
+    // --- Expanded Rules ---
+    check('_next/static', 'Next.js', 'Framework', 'nextdotjs');
+    check('react-dom', 'React', 'Library', 'react');
+    check('tailwindcss', 'Tailwind CSS', 'UI Framework', 'tailwindcss');
+    check('wp-content', 'WordPress', 'CMS', 'wordpress');
+    check('shopify', 'Shopify', 'E-commerce', 'shopify');
+    check('googletagmanager', 'GTM', 'Analytics', 'googleanalytics');
+    check('cloudflare', 'Security', 'Cloudflare', 'cloudflare');
+    check('vercel', 'Hosting', 'Vercel', 'vercel');
+    check('bootstrap', 'Bootstrap', 'UI Framework', 'bootstrap');
+    check('jquery', 'jQuery', 'Library', 'jquery');
+    check('contentful', 'Contentful', 'CMS', 'contentful');
 
     return { 
       success: true, 
+      url: targetUrl, 
+      isSecure,
       metadata,
-      tech: Array.from(foundTech.values())
+      tech: techList
     };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("Scan Error:", error);
+    return { success: false, error: "Scan failed. The site might be blocking automated requests." };
   }
 }
