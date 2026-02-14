@@ -28,11 +28,11 @@ export default function GoogleSpy() {
       <Toaster position="bottom-center" richColors />
       
       {/* Mini Nav */}
-      <nav className="p-4 flex justify-end gap-6 text-sm text-gray-600 items-center">
+      {/* <nav className="p-4 flex justify-end gap-6 text-sm text-gray-600 items-center">
         <a href="#" className="hover:underline">Support</a>
         <a href="#" className="hover:underline">Documentation</a>
         <div className="h-9 w-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">O</div>
-      </nav>
+      </nav> */}
 
       <div className={`flex flex-col items-center transition-all duration-500 px-4 ${result ? 'pt-6' : 'pt-32'}`}>
         {/* Animated Logo */}
