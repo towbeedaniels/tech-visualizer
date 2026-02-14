@@ -1,25 +1,38 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { performInstantScan } from './actions';
 import { Toaster, toast } from 'sonner';
 import { Search, Globe, ShieldCheck, ShieldAlert, Laptop, Info } from 'lucide-react';
 
+interface Tech {
+  name: string;
+  cat: string;
+  logo: string;
+}
+
+interface ScanResult {
+  success: boolean;
+  url?: string;
+  isSecure?: boolean;
+  metadata?: { title: string; description: string };
+  tech?: Tech[];
+  error?: string;
+}
+
 export default function GoogleSpy() {
   const [url, setUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     const data = await performInstantScan(url);
     if (data.success) {
-      setResult(data);
+      setResult(data as ScanResult);
     } else {
       toast.error(data.error);
     }
-    setLoading(false);
   }
 
   return (
@@ -40,7 +53,7 @@ export default function GoogleSpy() {
         </h1>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="w-full max-w-[600px] mb-8">
+        <form onSubmit={handleSearch} className="w-full max-w-150 mb-8">
           <div className="relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input 
@@ -58,8 +71,8 @@ export default function GoogleSpy() {
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-2 font-mono">
                 <Globe className="h-4 w-4" /> {result.url}
               </div>
-              <h2 className="text-2xl text-blue-800 font-medium mb-2 hover:underline cursor-pointer">{result.metadata.title}</h2>
-              <p className="text-gray-600 text-md leading-relaxed mb-4">{result.metadata.description}</p>
+              <h2 className="text-2xl text-blue-800 font-medium mb-2 hover:underline cursor-pointer">{result.metadata?.title}</h2>
+              <p className="text-gray-600 text-md leading-relaxed mb-4">{result.metadata?.description}</p>
               
               <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${result.isSecure ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                 {result.isSecure ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
@@ -71,12 +84,12 @@ export default function GoogleSpy() {
               <Laptop className="h-4 w-4" /> Tech Stack Analysis
             </h3>
 
-            {result.tech.length > 0 ? (
+            {result.tech && result.tech.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {result.tech.map((t: any, i: number) => (
+                {result.tech.map((t: Tech, i: number) => (
                   <div key={i} className="flex items-center gap-4 p-5 rounded-2xl border border-gray-100 bg-slate-50/50 hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-50 transition-all group">
-                    <img src={t.logo} alt={t.name} className="h-10 w-10 grayscale group-hover:grayscale-0 transition-all" 
-                         onError={(e) => (e.currentTarget.src = "https://cdn.simpleicons.org/codeigniter")} />
+                    <Image src={t.logo} alt={t.name} width={40} height={40} className="h-10 w-10 grayscale group-hover:grayscale-0 transition-all" 
+                         onError={(e) => { e.currentTarget.src = "https://cdn.simpleicons.org/codeigniter"; }} />
                     <div>
                       <div className="font-bold text-gray-900">{t.name}</div>
                       <div className="text-[10px] text-gray-400 font-bold uppercase">{t.cat}</div>
